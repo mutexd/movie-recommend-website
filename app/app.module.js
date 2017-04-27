@@ -1,5 +1,6 @@
 'use strict';
 
 angular.module('movieApp', [
-	'ngRoute'
+	'ngRoute',
+	'rankedMovieList'
 ]);
