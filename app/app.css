@@ -1,0 +1,33 @@
+.movie-card{
+  display:inline-block;
+  width:160px;
+  height:230px;
+  padding:10px;
+}
+.movie-thumb{
+  cursor: pointer;
+}
+
+.log-link{
+  float: right;
+}
+
+.button-signup{
+  background-color:#3366ff;
+  color:white;
+  border-color:#3366ff;
+  width:80px;
+  height:36px;
+  cursor:pointer;
+}
+
+.button-signin{
+  background-color:#e0ebeb;
+  border-color:#e0ebeb;
+  color:black;
+  width:80px;
+  height:36px;
+  cursor:pointer;
+}
+
+

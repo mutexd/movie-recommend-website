@@ -1,0 +1,15 @@
+<div ng-controller="movieController as mvList">
+    <div class="log-link">
+        <a ng-href="#!/logon"><button class="button-signup">Sign up</button></a>
+        <a ng-href="#!/login"><button class="button-signin">Sign in</button></a>
+    </div>
+  <h1>Highest-rated movies</h1>
+  <div class="movie-card" ng-repeat="card in mvList.movieList">
+    {{card.title}}<br/>
+    <span style="font-size:8px">{{card.year}}, {{card.duration}} min</span><br/>
+    <div class="movie-thumb">
+      <a ng-href="{{card.url}}">
+      <img ng-src="{{card.thumb}}" width=156 height=200>
+    </div>
+  </div>
+</div>
