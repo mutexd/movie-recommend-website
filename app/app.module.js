@@ -2,5 +2,6 @@
 
 angular.module('movieApp', [
 	'ngRoute',
+	'ngResource',
 	'rankedMovieList'
 ]);

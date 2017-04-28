@@ -1,11 +1,11 @@
 'use strict';
 
-angular.module('rankedMovieList', ['ngResource']);
+angular.module('rankedMovieList', []);
 
 angular.
   module('rankedMovieList').
     factory('rankedListSvc', ['$resource', function($resource){
-      return $resource('movie-list-ranked/movies.json', {});
+      return $resource('http://localhost:8080/movielist/ranked', {});
     }]);
 
 angular.

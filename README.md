@@ -5,5 +5,9 @@ This repository demonstrate the full-stack development of a movie recommendation
 This website should allow user to register, sign-in and rate movies. 
 It will also show the recommended movies to user by using machine-learning algorithm.
 
-# involed skill-set
-• front-end: angularJS; back-end: golang; database: mysql; machine-learning algorithm: collaborative filtering
+# involed languages
+• `front-end`: angularJS.
+• `back-end` : golang.
+• `database` : mysql.
+• `machine-learning algorithm`: collaborative filtering.
+
