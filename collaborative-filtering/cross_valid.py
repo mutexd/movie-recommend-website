@@ -23,8 +23,9 @@ def main(argv):
 
     lamda = 0
     num_movies, num_users = _load_info()
-    num_features = _cross_valid_feature(5, num_movies, num_users, lamda)
-    #lamda = _cross_valid_lamda(5, num_movies, num_users, num_features)
+    num_features = _cross_valid_feature(1, num_movies, num_users, lamda)
+    #num_features = 10
+    #lamda = _cross_valid_lamda(1, num_movies, num_users, num_features)
 
 def _usage():
     print __file__, "-i <movielen data directory>"
@@ -43,8 +44,8 @@ def _load_info():
     f_info.close()
     return num_movies, num_users
 
-def _load_data(fold_id, ratings, valid_ratings):
-    f_name = "u" + str(fold_id) + ".base"
+def _load_data(fold_id, ext, ratings, valid_ratings):
+    f_name = "u" + str(fold_id) + ext
     f_data = open(f_name)
     count = 0
     for line in f_data:
@@ -58,15 +59,11 @@ def _load_data(fold_id, ratings, valid_ratings):
     f_data.close()
     return count
 
-def _cross_valid_fold(fold_id, max_fold, 
-                      num_movies, num_users, num_features, lamda):
+def _cross_valid_fold(fold_id, num_movies, num_users, num_features, lamda):
     """k-th-fold cross validation"""
     ratings = np.zeros(shape=(num_movies, num_users))
     valid_ratings = np.zeros(shape=(num_movies, num_users))
-    train_data_num = 0
-    for i in range(1, max_fold + 1, 1):
-        if i != fold_id:
-            train_data_num += _load_data(i, ratings, valid_ratings)
+    train_data_num = _load_data(fold_id, ".base", ratings, valid_ratings)
 
     mf = cf.MFactor(ratings, valid_ratings)
     cost = mf.training(num_features, lamda)
@@ -75,7 +72,8 @@ def _cross_valid_fold(fold_id, max_fold,
     # calculation cross-validation loss
     cross_ratings = np.zeros(shape=(num_movies, num_users))
     cross_valid_ratings = np.zeros(shape=(num_movies, num_users))
-    cv_data_num = _load_data(fold_id, cross_ratings, cross_valid_ratings)
+    cv_data_num = _load_data(fold_id, ".test",
+                             cross_ratings, cross_valid_ratings)
 
     cost_cv = mf.loss(cross_ratings, cross_valid_ratings, lamda)
     cost_cv = cost_cv / cv_data_num
@@ -91,32 +89,35 @@ def _cross_valid_feature(max_fold, num_movies, num_users, lamda):
     for i in range(1, 31, 1):
         for k in range(1, max_fold + 1, 1):
             cost_train_per_fold[k-1], cost_cross_per_fold[k-1] = (
-                _cross_valid_fold(k, max_fold, num_movies, num_users,
+                _cross_valid_fold(k, num_movies, num_users,
                                   i, lamda))
         loss_train_vector[i] = np.mean(cost_train_per_fold)
         loss_cross_vector[i] = np.mean(cost_cross_per_fold)
 
-    sel_feature = np.argmin(loss_cross_vector[1:]) + 1
-    print "num_feature should be ", sel_feature
     # draw the Loss v.s num_feature graph
     plt.plot(loss_train_vector, "r")
     plt.plot(loss_cross_vector, "b")
-    plt.axis([1, 30, 0, 1.2*max(loss_cross_vector)])
+    v1 = np.array(loss_cross_vector)
+    v2 = np.array(loss_train_vector)
+    v3 = v1 + v2
+    sel_feature = np.argmin(v3[1:]) + 1
+    print "num_feature should be ", sel_feature
+    plt.plot(v3, "g")
+    plt.axis([1, 30, 0, 1.2*max(v3)])
     plt.show()
     return sel_feature
-
  
 def _cross_valid_lamda(max_fold, num_movies, num_users, num_features):
     """5-fold cross validation on regularization term"""
-    l_vector = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+    l_vector = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100]
     loss_train_vector = [.0]*len(l_vector)
     loss_cross_vector = [.0]*len(l_vector)
-    cost_train_per_fold = [.0]*5
-    cost_cross_per_fold = [.0]*5
+    cost_train_per_fold = [.0]*max_fold
+    cost_cross_per_fold = [.0]*max_fold
     for i in range(len(l_vector)):
         for k in range(1, max_fold + 1, 1):
             cost_train_per_fold[k-1], cost_cross_per_fold[k-1] = (
-                _cross_valid_fold(k, max_fold, num_movies, num_users,
+                _cross_valid_fold(k, num_movies, num_users,
                                     num_features, l_vector[i]))
         loss_train_vector[i] = np.mean(cost_train_per_fold)
         loss_cross_vector[i] = np.mean(cost_cross_per_fold)
@@ -129,8 +130,6 @@ def _cross_valid_lamda(max_fold, num_movies, num_users, num_features):
     plt.axis([0, 35, 0, 1.2*max(loss_cross_vector)])
     plt.show()
     return sel_lamda
-
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])

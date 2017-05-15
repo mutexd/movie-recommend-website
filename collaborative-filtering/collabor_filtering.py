@@ -12,8 +12,8 @@ class MFactor:
 
     def training(self, num_features, lamda):
         num_movies, num_users = self.ratings.shape
-        labels_norm, self.labels_mean = _normalize_rating(self.ratings, 
-                                                          self.valid_ratings)
+        #labels_norm, self.labels_mean = _normalize_rating(self.ratings,
+        #                                                  self.valid_ratings)
 
         # initialize parameters
         X = np.random.randn(num_movies, num_features)
@@ -25,7 +25,7 @@ class MFactor:
         # training our data
         xopt, fopt, _, _, _ = fmin_cg(
             _cost_function, params, fprime=_gradient_step,
-            args=(labels_norm, self.valid_ratings, num_users,
+            args=(self.ratings, self.valid_ratings, num_users,
                   num_movies, num_features, lamda),
             maxiter=100, full_output=True)
 
@@ -46,13 +46,18 @@ class MFactor:
         """
         num_movies, num_users = ratings.shape
         _, num_features = self.features.shape
-        ratings_norm , _ = _normalize_rating(ratings, valid_ratings)
+        # caculate normalized rating base on the rating mean in training
+        #ratings_norm = np.zeros((num_movies, num_users))
+        #for i in range(num_movies):
+        #    idx, = valid_ratings[i].nonzero()
+        #    if len(idx) != 0:
+        #        ratings_norm[i][idx] = ratings[i][idx] - self.labels_mean[i]
 
         # concatenate into 1d vector
         params = np.reshape(self.features, (num_movies*num_features))
         params = np.concatenate((params, np.reshape(self.coeff, 
                                                     (num_users*num_features))))
-        return _cost_function(params, ratings_norm, valid_ratings,
+        return _cost_function(params, ratings, valid_ratings,
                               num_users, num_movies, num_features, lamda)
 
 def main():
@@ -137,8 +142,8 @@ def _normalize_rating(Y, R):
     y_mean = np.zeros((m, 1))
     y_norm = np.zeros((m, n))
     for i in range(m):
-        idx = R[i].nonzero()
-        y_mean[i] = np.mean(Y[i][idx])
+        idx, = R[i].nonzero()
+        y_mean[i] = np.mean(Y[i][idx]) if len(idx) != 0 else 0
         y_norm[i][idx] = Y[i][idx] - y_mean[i]
     return y_norm, y_mean
 
