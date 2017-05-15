@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import fmin_cg
 
 class MFactor:
+    """ A matrix factorization - collaborative filtering algorthm """
     def __init__(self, ratings, valid_ratings):
         self.features = None
         self.coeff = None
@@ -22,21 +23,37 @@ class MFactor:
                                 (num_users*num_features))))
 
         # training our data
-        xopt = fmin_cg(_cost_function, params, fprime=_gradient_step,
-                       args=(labels_norm, self.valid_ratings, num_users,
-                             num_movies, num_features, lamda),
-                       maxiter=100)
+        xopt, fopt, _, _, _ = fmin_cg(
+            _cost_function, params, fprime=_gradient_step,
+            args=(labels_norm, self.valid_ratings, num_users,
+                  num_movies, num_features, lamda),
+            maxiter=100, full_output=True)
 
         self.features = np.reshape(xopt[0:num_movies*num_features],
                              (num_movies, num_features))
         self.coeff = np.reshape(xopt[num_movies*num_features:],
                              (num_users, num_features))
-        return True
+        return fopt
 
     def predict(self, userID):
         p = np.dot(self.features, self.coeff.transpose())
         p = p[:,userID] + self.labels_mean.flatten()
         return p
+
+    def loss(self, ratings, valid_ratings, lamda):
+        """Calculate the loss of the input data base on the trained
+           features and coefficient.
+        """
+        num_movies, num_users = ratings.shape
+        _, num_features = self.features.shape
+        ratings_norm , _ = _normalize_rating(ratings, valid_ratings)
+
+        # concatenate into 1d vector
+        params = np.reshape(self.features, (num_movies*num_features))
+        params = np.concatenate((params, np.reshape(self.coeff, 
+                                                    (num_users*num_features))))
+        return _cost_function(params, ratings_norm, valid_ratings,
+                              num_users, num_movies, num_features, lamda)
 
 def main():
     # check the implementation of cost function
@@ -73,7 +90,7 @@ def main():
 
     mf = MFactor(Y, R)
 
-    mf.training(10, 10)
+    loss = mf.training(10, 10)
 
     prediction = mf.predict(0)
 
