@@ -6,6 +6,8 @@ import collabor_filtering as cf
 import matplotlib.pyplot as plt
 
 def main(argv):
+    """perform cross validation"""
+    lamda_v = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100]
     ml_dir = None
     try:
         opts, args = getopt.getopt(argv, "hi:", ["input="])
@@ -21,11 +23,17 @@ def main(argv):
 
     os.chdir(ml_dir)
 
-    lamda = 0
     num_movies, num_users = _load_info()
-    num_features = _cross_valid_feature(1, num_movies, num_users, lamda)
-    #num_features = 10
-    #lamda = _cross_valid_lamda(1, num_movies, num_users, num_features)
+
+    for i in range(len(lamda_v)):
+        subplt = plt.subplot(3, 3, i+1)
+        subplt.set_ylabel("cost", fontsize=8)
+        subplt.set_xlabel("feature", fontsize=8)
+        _cross_valid_feature(1, num_movies,
+                             num_users, lamda_v[i], subplt)
+        subplt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                      ncol=2, mode="expand", borderaxespad=0)
+    plt.show()
 
 def _usage():
     print __file__, "-i <movielen data directory>"
@@ -80,13 +88,13 @@ def _cross_valid_fold(fold_id, num_movies, num_users, num_features, lamda):
     print num_features, fold_id, "train_cost:", cost, " cross_cost:", cost_cv
     return cost, cost_cv
 
-def _cross_valid_feature(max_fold, num_movies, num_users, lamda):
+def _cross_valid_feature(max_fold, num_movies, num_users, lamda, subplt):
     """5-fold cross validation on num_feature(1~30)"""
     loss_train_vector = [.0]*31
     loss_cross_vector = [.0]*31
     cost_train_per_fold = [.0]*max_fold
     cost_cross_per_fold = [.0]*max_fold
-    for i in range(1, 31, 1):
+    for i in range(1,  31, 1):
         for k in range(1, max_fold + 1, 1):
             cost_train_per_fold[k-1], cost_cross_per_fold[k-1] = (
                 _cross_valid_fold(k, num_movies, num_users,
@@ -95,41 +103,15 @@ def _cross_valid_feature(max_fold, num_movies, num_users, lamda):
         loss_cross_vector[i] = np.mean(cost_cross_per_fold)
 
     # draw the Loss v.s num_feature graph
-    plt.plot(loss_train_vector, "r")
-    plt.plot(loss_cross_vector, "b")
+    subplt.plot(loss_train_vector, "r")
+    subplt.plot(loss_cross_vector, "b")
     v1 = np.array(loss_cross_vector)
     v2 = np.array(loss_train_vector)
     v3 = v1 + v2
     sel_feature = np.argmin(v3[1:]) + 1
-    print "num_feature should be ", sel_feature
-    plt.plot(v3, "g")
+    subplt.plot(v3, "g", label="lambda="+str(lamda))
     plt.axis([1, 30, 0, 1.2*max(v3)])
-    plt.show()
     return sel_feature
  
-def _cross_valid_lamda(max_fold, num_movies, num_users, num_features):
-    """5-fold cross validation on regularization term"""
-    l_vector = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100]
-    loss_train_vector = [.0]*len(l_vector)
-    loss_cross_vector = [.0]*len(l_vector)
-    cost_train_per_fold = [.0]*max_fold
-    cost_cross_per_fold = [.0]*max_fold
-    for i in range(len(l_vector)):
-        for k in range(1, max_fold + 1, 1):
-            cost_train_per_fold[k-1], cost_cross_per_fold[k-1] = (
-                _cross_valid_fold(k, num_movies, num_users,
-                                    num_features, l_vector[i]))
-        loss_train_vector[i] = np.mean(cost_train_per_fold)
-        loss_cross_vector[i] = np.mean(cost_cross_per_fold)
-
-    sel_lamda = l_vector[np.argmin(loss_cross_vector)]
-    print "lamda should be ", sel_lamda
-    # draw the Loss v.s num_feature graph
-    plt.plot(loss_train_vector, "r")
-    plt.plot(loss_cross_vector, "b")
-    plt.axis([0, 35, 0, 1.2*max(loss_cross_vector)])
-    plt.show()
-    return sel_lamda
-
 if __name__ == "__main__":
     main(sys.argv[1:])
