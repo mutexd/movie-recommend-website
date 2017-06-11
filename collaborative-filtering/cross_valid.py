@@ -29,7 +29,7 @@ def main(argv):
         subplt = plt.subplot(3, 3, i+1)
         subplt.set_ylabel("cost", fontsize=8)
         subplt.set_xlabel("feature", fontsize=8)
-        _cross_valid_feature(1, num_movies,
+        _cross_valid_feature(5, num_movies,
                              num_users, lamda_v[i], subplt)
         subplt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                       ncol=2, mode="expand", borderaxespad=0)

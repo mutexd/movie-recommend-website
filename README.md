@@ -7,7 +7,7 @@ It will also show the recommended movies to user by using machine-learning algor
 
 # Architecture
 - front-end: `angularJS`
-- back-end: `golang`
-- database: `mysql`
-- machine-learning algorithm: `collaborative filtering`
+- back-end: `golang`, `python`
+- database: `mysql`, `postgreSQL`
+- machine-learning algorithm: `collaborative filtering: matrix factorization` - `python-numpy`
 
