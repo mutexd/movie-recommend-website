@@ -5,26 +5,26 @@ def main():
     svc = CoreService()
     if svc.start() == False:
         return
-    rval = svc.registeration("joshd1986@gmail.com", "123456")
+    rval = svc.register("joshd1986@gmail.com", "123456")
     if rval >= 0:
         print "Registeration success"
     else:
         print "Already used email, fail"
         return
 
-    rval = svc.authentication("joshd1986@gmail.com", "123456")
+    rval = svc.auth("joshd1986@gmail.com", "123456")
     if rval >= 0:
         print "Verified joshd1986@gmail.com"
     else:
         print "Verified error"
 
-    rval = svc.authentication("joshd1986@gmail.com", "1236")
+    rval = svc.auth("joshd1986@gmail.com", "1236")
     if rval >= 0:
         print "Verified joshd1986@gmail.com"
     else:
         print "Verified error"
 
-    rval = svc.authentication("joshd@gmail.com", "1236")
+    rval = svc.auth("joshd@gmail.com", "1236")
     if rval >= 0:
         print "Verified joshd1986@gmail.com"
     else:
@@ -55,7 +55,7 @@ class CoreService:
         self.meta.create_all(self.con)
         return True
 
-    def registeration(self, email, passphrase):
+    def register(self, email, passphrase):
         """Search and compare email, add new user and return UserID"""
         usr = self.meta.tables[USER_INFO_TABLE]
         result = self.con.execute(usr.select().where(usr.c.email == email))
@@ -70,7 +70,7 @@ class CoreService:
         else: # conflict, cannot add this user
             return -1
 
-    def authentication(self, email, passphrase):
+    def auth(self, email, passphrase):
         """Search and verify passphrase, return corresponding UserID"""
         usr = self.meta.tables[USER_INFO_TABLE]
         result = self.con.execute(usr.select().where(usr.c.email == email)).fetchone()
