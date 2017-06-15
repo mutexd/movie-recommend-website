@@ -1,4 +1,5 @@
 import sqlalchemy as orm
+from passlib.hash import sha256_crypt
 
 def main():
     """test"""
@@ -55,7 +56,7 @@ class CoreService:
         self.meta.create_all(self.con)
         return True
 
-    def register(self, email, passphrase):
+    def register(self, email, password):
         """Search and compare email, add new user and return UserID"""
         usr = self.meta.tables[USER_INFO_TABLE]
         result = self.con.execute(usr.select().where(usr.c.email == email))
@@ -63,21 +64,23 @@ class CoreService:
             result = self.con.execute(orm.sql.text("select max(user_id) from "+USER_INFO_TABLE))
             max_id, = result.fetchone()
             max_id = 0 if max_id is None else max_id
+            # salt+hash
+            pw = sha256_crypt.encrypt(password)
             self.con.execute(usr.insert().values(user_id=max_id + 1,
                                                  email=email,
-                                                 passphrase=passphrase))
+                                                 passphrase=pw))
             return max_id + 1
         else: # conflict, cannot add this user
             return -1
 
-    def auth(self, email, passphrase):
+    def auth(self, email, password):
         """Search and verify passphrase, return corresponding UserID"""
         usr = self.meta.tables[USER_INFO_TABLE]
         result = self.con.execute(usr.select().where(usr.c.email == email)).fetchone()
         if result is None:
             return -1
         pw = result['passphrase']
-        if pw == passphrase:
+        if sha256_crypt.verify(password, pw):
             return result['user_id']
         else:
             return -1
