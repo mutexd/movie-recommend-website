@@ -16,6 +16,7 @@ _EMAIL_KEY = "email_address"
 _PW_KEY = "password"
 _USER_ID_KEY = "user_id"
 _ERROR_KEY = "error"
+_TOKEN_KEY = "access_token"
 
 ### APIs
 
@@ -32,11 +33,9 @@ def registeration():
     elif not _PW_KEY in request.json:
         abort(400)
 
-    rval = svc.register(request.json[_EMAIL_KEY], request.json[_PW_KEY])
-    if rval >= 0:
-        ### We should generate access_token with user_id
-        ### Also, we should reply redirect-url
-        return make_response(jsonify({_USER_ID_KEY:rval}), 200)
+    user_id, access_token = svc.register(request.json[_EMAIL_KEY], request.json[_PW_KEY])
+    if user_id >= 0:
+        return make_response(jsonify({_USER_ID_KEY: user_id, _TOKEN_KEY: access_token}), 200)
     else:
         return make_response(jsonify({_ERROR_KEY: 'Existing email address'}), 401)
    
@@ -47,11 +46,9 @@ def signin():
         abort(400)
     elif not _PW_KEY in request.json:
         abort(400)
-    rval = svc.auth(request.json[_EMAIL_KEY], request.json[_PW_KEY])
-    if rval >= 0:
-        ### We should generate access_token with user_id
-        ### Also, we should reply redirect-url
-        return make_response(jsonify({_USER_ID_KEY:rval}), 200)
+    user_id, access_token = svc.auth(request.json[_EMAIL_KEY], request.json[_PW_KEY])
+    if user_id >= 0:
+        return make_response(jsonify({_USER_ID_KEY: user_id, _TOKEN_KEY: access_token}), 200)
     else:
         return make_response(jsonify({_ERROR_KEY: 'Authentication fail'}), 401)
 
@@ -81,10 +78,8 @@ def not_found(error):
 @auth.verify_token
 def verify(token):
     # verify api/v0.1/xxx/<user_id> and access_token
-    _user_id = request.path.split('/')[-1]
-    if _user_id == "1" and token == "112288":
-        return True
-    return False
+    user_id = int(request.path.split('/')[-1])
+    return svc.verify_token(user_id, token)
 
 @auth.error_handler
 def unauthorized():

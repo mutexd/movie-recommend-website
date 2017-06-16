@@ -1,5 +1,6 @@
 import sqlalchemy as orm
 from passlib.hash import sha256_crypt
+import random, string
 
 def main():
     """test"""
@@ -40,7 +41,9 @@ class CoreService:
         self.init = False
         self.con = None
         self.meta = None
-    
+        self.token_list = None
+        self.max_id = 0
+
     def start(self):
         try:
             self.con, self.meta = connect('cf_webmovie', 'cf_wmtester', 'webmovie')
@@ -53,6 +56,13 @@ class CoreService:
                             orm.Column('user_id', orm.Integer, primary_key=True),
                             orm.Column('email', orm.String),
                             orm.Column('passphrase', orm.String))
+            self.token_list = []
+        else:
+            result = self.con.execute(orm.sql.text("select max(user_id) from "+USER_INFO_TABLE))
+            self.max_id, = result.fetchone()
+            self.max_id = 0 if self.max_id is None else self.max_id
+            self.token_list = [None for i in range(self.max_id)]
+
         self.meta.create_all(self.con)
         return True
 
@@ -61,33 +71,50 @@ class CoreService:
         usr = self.meta.tables[USER_INFO_TABLE]
         result = self.con.execute(usr.select().where(usr.c.email == email))
         if result.rowcount == 0: # not found, add this new user
-            result = self.con.execute(orm.sql.text("select max(user_id) from "+USER_INFO_TABLE))
-            max_id, = result.fetchone()
-            max_id = 0 if max_id is None else max_id
+            self.max_id += 1
             # salt+hash
             pw = sha256_crypt.encrypt(password)
-            self.con.execute(usr.insert().values(user_id=max_id + 1,
+            self.con.execute(usr.insert().values(user_id=self.max_id,
                                                  email=email,
                                                  passphrase=pw))
-            return max_id + 1
+            return self.max_id, self._generate_token(self.max_id)
         else: # conflict, cannot add this user
-            return -1
+            return -1, None
 
     def auth(self, email, password):
         """Search and verify passphrase, return corresponding UserID"""
         usr = self.meta.tables[USER_INFO_TABLE]
         result = self.con.execute(usr.select().where(usr.c.email == email)).fetchone()
         if result is None:
-            return -1
+            return -1, None
         pw = result['passphrase']
+        user_id = result['user_id']
         if sha256_crypt.verify(password, pw):
-            return result['user_id']
+            return user_id, self._generate_token(self.max_id)
         else:
-            return -1
-        
+            return -1, None
+
+    def verify_token(self, user_id, token):
+        """verify the user_id:token pair"""
+        if user_id <= len(self.token_list) and self.token_list[user_id-1] == token:
+            return True
+        return False
+
     #def add_rating(user_id, movie_id, rating):
 
     #def get_prediction(user_id, r):
+
+    def _generate_token(self, user_id):
+        """generate token and save it to user_id:token list"""
+        ### TODO - provide expire_time and refresh_token
+
+        token = ''.join(random.choice(string.ascii_letters + string.digits) for n in xrange(128))
+        ### enlarge token_list if not enough
+        if user_id > len(self.token_list):
+            for i in range(user_id - len(self.token_list)):
+                self.token_list.append(None)
+        self.token_list[user_id-1] = token
+        return token
 
 def connect(user, password, db, host='localhost', port=5432):
     """Returns a connetion and meta-data object"""
