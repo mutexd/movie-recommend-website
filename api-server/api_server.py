@@ -23,7 +23,8 @@ _TOKEN_KEY = "access_token"
 @app.route("/webmovie/api/v0.1/guest")
 def guest():
     """retrieve a list of avg-ranking movie list"""
-    return "Hello World!"
+    movie_list = svc.avg_ranking(1, 10)
+    return make_response(jsonify({'movie_list': movie_list}), 200)
 
 @app.route('/webmovie/api/v0.1/signup', methods=["POST"])
 def registeration():
@@ -86,7 +87,7 @@ def unauthorized():
     return make_response(jsonify({_ERROR_KEY: 'Unauthorized access'}), 401)
 
 if __name__ == "__main__":
-    if svc.start() == False:
+    if svc.start(sys.argv[1]) == False:
         print "CoreService start fail"
     else:
         print "Movie CoreService started."

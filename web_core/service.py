@@ -32,7 +32,18 @@ def main():
     else:
         print "Verified error"
 
-USER_INFO_TABLE = 'user_info'
+_USER_INFO_TABLE = 'user_info'
+_MOVIE_INFO_TABLE = 'movie_info'
+_USER_ID_KEY = 'user_id'
+_EMAIL_KEY = 'email'
+_PW_KEY = 'passphrase'
+_MOVIE_ID_KEY = 'movie_id'
+_TITLE_KEY = 'title'
+_DATE_KEY = 'date'
+_IMDB_URL_KEY = 'imdb_url'
+_THUMB_URL_KEY = 'thumb_url'
+_DURATION_KEY = 'duration'
+_PRESENT_TITLE_KEY = 'present_title'
 
 class CoreService:
     """provide service to api-server, abstract away database access
@@ -44,31 +55,47 @@ class CoreService:
         self.token_list = None
         self.max_id = 0
 
-    def start(self):
+    def start(self, movie_info_filename):
+        print movie_info_filename
         try:
             self.con, self.meta = connect('cf_webmovie', 'cf_wmtester', 'webmovie')
         except:
             print "DB-connection fail"
             return False
         # make sure all tables are created
-        if USER_INFO_TABLE not in self.meta.tables:
-            usr = orm.Table(USER_INFO_TABLE, self.meta,
-                            orm.Column('user_id', orm.Integer, primary_key=True),
-                            orm.Column('email', orm.String),
-                            orm.Column('passphrase', orm.String))
+        if _USER_INFO_TABLE not in self.meta.tables:
+            print "user_info table created"
+            usr = orm.Table(_USER_INFO_TABLE, self.meta,
+                            orm.Column(_USER_ID_KEY, orm.Integer, primary_key=True),
+                            orm.Column(_EMAIL_KEY, orm.String),
+                            orm.Column(_PW_KEY, orm.String))
             self.token_list = []
         else:
-            result = self.con.execute(orm.sql.text("select max(user_id) from "+USER_INFO_TABLE))
+            result = self.con.execute(orm.sql.text("select max(user_id) from "+_USER_INFO_TABLE))
             self.max_id, = result.fetchone()
             self.max_id = 0 if self.max_id is None else self.max_id
             self.token_list = [None for i in range(self.max_id)]
 
+        to_create_table = False
+        if _MOVIE_INFO_TABLE not in self.meta.tables:
+            print "movie_info table created"
+            movie_table = orm.Table(_MOVIE_INFO_TABLE, self.meta,
+                                    orm.Column(_MOVIE_ID_KEY, orm.Integer, primary_key=True),
+                                    orm.Column(_TITLE_KEY, orm.String),
+                                    orm.Column(_DATE_KEY, orm.String),
+                                    orm.Column(_IMDB_URL_KEY, orm.String),
+                                    orm.Column(_THUMB_URL_KEY, orm.String),
+                                    orm.Column(_DURATION_KEY, orm.String),
+                                    orm.Column(_PRESENT_TITLE_KEY, orm.String))
+            to_create_table = True
         self.meta.create_all(self.con)
+        if to_create_table == True:
+            self._load_movie_table(movie_info_filename)
         return True
 
     def register(self, email, password):
         """Search and compare email, add new user and return UserID"""
-        usr = self.meta.tables[USER_INFO_TABLE]
+        usr = self.meta.tables[_USER_INFO_TABLE]
         result = self.con.execute(usr.select().where(usr.c.email == email))
         if result.rowcount == 0: # not found, add this new user
             self.max_id += 1
@@ -83,12 +110,12 @@ class CoreService:
 
     def auth(self, email, password):
         """Search and verify passphrase, return corresponding UserID"""
-        usr = self.meta.tables[USER_INFO_TABLE]
+        usr = self.meta.tables[_USER_INFO_TABLE]
         result = self.con.execute(usr.select().where(usr.c.email == email)).fetchone()
         if result is None:
             return -1, None
-        pw = result['passphrase']
-        user_id = result['user_id']
+        pw = result[_PW_KEY]
+        user_id = result[_USER_ID_KEY]
         if sha256_crypt.verify(password, pw):
             return user_id, self._generate_token(self.max_id)
         else:
@@ -100,6 +127,16 @@ class CoreService:
             return True
         return False
 
+    def avg_ranking(self, start, end):
+        """return list of movie ranking from start to end"""
+        movie = self.meta.tables[_MOVIE_INFO_TABLE]
+        result = self.con.execute(movie.select().where(movie.c.movie_id.in_(range(start, end))))
+        data = []
+        for row in result:
+            data.append({_MOVIE_ID_KEY: row.movie_id,
+                         _TITLE_KEY: row.title,
+                         _THUMB_URL_KEY: row.thumb_url})
+        return data
     #def add_rating(user_id, movie_id, rating):
 
     #def get_prediction(user_id, r):
@@ -115,6 +152,23 @@ class CoreService:
                 self.token_list.append(None)
         self.token_list[user_id-1] = token
         return token
+
+    def _load_movie_table(self, filename):
+        """load movie table"""
+        f_info = open(filename)
+        data = []
+        movie = self.meta.tables[_MOVIE_INFO_TABLE]
+        for line in f_info:
+            items = line.strip('\n').split('|')
+            data.append({_MOVIE_ID_KEY: items[0],
+                         _TITLE_KEY: items[1].decode('iso-8859-1').encode('utf8'),
+                         _DATE_KEY: items[2],
+                         _IMDB_URL_KEY: items[4],
+                         _THUMB_URL_KEY: 'oops.jpeg',
+                         _DURATION_KEY: '0 min',
+                         _PRESENT_TITLE_KEY: 'unknown'})
+        self.con.execute(movie.insert().values(data))
+        f_info.close()
 
 def connect(user, password, db, host='localhost', port=5432):
     """Returns a connetion and meta-data object"""
