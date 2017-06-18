@@ -23,7 +23,10 @@ _TOKEN_KEY = "access_token"
 @app.route("/webmovie/api/v0.1/guest")
 def guest():
     """retrieve a list of avg-ranking movie list"""
-    movie_list = svc.avg_ranking(1, 10)
+    begin = request.args.get('begin')
+    end = request.args.get('end')
+    ### need sanity check on arguments
+    movie_list = svc.avg_ranking(int(begin), int(end))
     return make_response(jsonify({'movie_list': movie_list}), 200)
 
 @app.route('/webmovie/api/v0.1/signup', methods=["POST"])
@@ -56,11 +59,15 @@ def signin():
 @app.route("/webmovie/api/v0.1/recommend/<int:user_id>", methods=["GET"])
 @auth.login_required
 def recommend(user_id):
+    begin = request.args.get('begin')
+    end = request.args.get('end')
     return "user %d\n" %user_id
 
 @app.route('/webmovie/api/v0.1/rated/<int:user_id>', methods=["GET"])
 @auth.login_required
 def rated(user_id):
+    begin = request.args.get('begin')
+    end = request.args.get('end')
     return 'User %d\n' %user_id
 
 @app.route('/webmovie/api/v0.1/add_rating/<int:user_id>', methods=["POST"])

@@ -1,4 +1,5 @@
 import sqlalchemy as orm
+import numpy as np
 from passlib.hash import sha256_crypt
 import random, string
 
@@ -32,8 +33,12 @@ def main():
     else:
         print "Verified error"
 
+### Constants
+
 _USER_INFO_TABLE = 'user_info'
 _MOVIE_INFO_TABLE = 'movie_info'
+_RATING_INFO_TABLE = 'rating_info'
+
 _USER_ID_KEY = 'user_id'
 _EMAIL_KEY = 'email'
 _PW_KEY = 'passphrase'
@@ -44,6 +49,8 @@ _IMDB_URL_KEY = 'imdb_url'
 _THUMB_URL_KEY = 'thumb_url'
 _DURATION_KEY = 'duration'
 _PRESENT_TITLE_KEY = 'present_title'
+_TIMESTAMP_KEY = 'timestamp'
+_RATING_KEY = 'rating'
 
 class CoreService:
     """provide service to api-server, abstract away database access
@@ -55,14 +62,21 @@ class CoreService:
         self.token_list = None
         self.max_id = 0
 
-    def start(self, movie_info_filename):
-        print movie_info_filename
+        self.num_movies = 0
+        self.num_inactive_users = 0 # users from movielen data
+        self.num_users = 0
+        self.ratings = None
+        self.valid_ratings = None
+
+    def start(self, movie_len_dir):
+        print movie_len_dir
         try:
             self.con, self.meta = connect('cf_webmovie', 'cf_wmtester', 'webmovie')
         except:
             print "DB-connection fail"
             return False
-        # make sure all tables are created
+
+        ### make sure all db-tables are created
         if _USER_INFO_TABLE not in self.meta.tables:
             print "user_info table created"
             usr = orm.Table(_USER_INFO_TABLE, self.meta,
@@ -76,9 +90,10 @@ class CoreService:
             self.max_id = 0 if self.max_id is None else self.max_id
             self.token_list = [None for i in range(self.max_id)]
 
-        to_create_table = False
+        to_create_movie_table = False
         if _MOVIE_INFO_TABLE not in self.meta.tables:
             print "movie_info table created"
+            to_create_movie_table = True
             movie_table = orm.Table(_MOVIE_INFO_TABLE, self.meta,
                                     orm.Column(_MOVIE_ID_KEY, orm.Integer, primary_key=True),
                                     orm.Column(_TITLE_KEY, orm.String),
@@ -87,10 +102,37 @@ class CoreService:
                                     orm.Column(_THUMB_URL_KEY, orm.String),
                                     orm.Column(_DURATION_KEY, orm.String),
                                     orm.Column(_PRESENT_TITLE_KEY, orm.String))
-            to_create_table = True
+
+        if _RATING_INFO_TABLE not in self.meta.tables:
+            print "rating_info table created"
+            rating_table = orm.Table(_RATING_INFO_TABLE, self.meta,
+                                     orm.Column(_USER_ID_KEY, orm.Integer, primary_key=True),
+                                     orm.Column(_MOVIE_ID_KEY, orm.Integer),
+                                     orm.Column(_RATING_KEY, orm.Integer),
+                                     orm.Column(_TIMESTAMP_KEY, orm.Integer))
+
         self.meta.create_all(self.con)
-        if to_create_table == True:
-            self._load_movie_table(movie_info_filename)
+        if to_create_movie_table == True:
+            self._load_movie_table(movie_len_dir + "/u.item")
+
+        ### initialize matrix (rating, rating_valid)
+        self.num_movies, self.num_inactive_users = load_movieLen_info(movie_len_dir + "/u.info")
+        # allocate more rows for future user
+        self.num_users = (self.num_inactive_users + self.max_id) * 2
+        self.ratings = np.zeros(shape=(self.num_movies, self.num_users))
+        self.valid_ratings = np.zeros(shape=(self.num_movies, self.num_users))
+        ##load from movieLen data
+        data_num = load_movieLen_data(movie_len_dir + "/u.data", self.ratings, self.valid_ratings)
+        print "load ", data_num, "of rating data from movieLen"
+        ##load from database data
+        rating_tbl = self.meta.tables[_RATING_INFO_TABLE]
+        result = self.con.execute(rating_tbl.select())
+        print "max_id:", self.max_id
+        for row in result:
+            print "user %d rate %d for movie_id(%d)" %(row.user_id, row.movie_id, row.rating)
+            self.ratings[row.movie_id][row.user_id+self.num_inactive_users-1] = row.rating
+            self.valid_ratings[row.movie_id][row.user_id+row.user_id+self.num_inactive_users-1] = 1
+
         return True
 
     def register(self, email, password):
@@ -127,10 +169,17 @@ class CoreService:
             return True
         return False
 
-    def avg_ranking(self, start, end):
+    def avg_ranking(self, begin, end):
         """return list of movie ranking from start to end"""
         movie = self.meta.tables[_MOVIE_INFO_TABLE]
-        result = self.con.execute(movie.select().where(movie.c.movie_id.in_(range(start, end))))
+        ## calculate avg_ranking from ratings
+        m, n = self.ratings.shape
+        ratings_mean = np.zeros((m, 1))
+        for i in range(m):
+            idx, = self.valid_ratings[i].nonzero()
+            ratings_mean[i] = np.mean(self.ratings[i][idx]) if len(idx) != 0 else 0
+        avg_idx = np.argsort(ratings_mean, axis=0)[::-1].flatten().tolist()
+        result = self.con.execute(movie.select().where(movie.c.movie_id.in_(avg_idx[begin:end])))
         data = []
         for row in result:
             data.append({_MOVIE_ID_KEY: row.movie_id,
@@ -154,7 +203,7 @@ class CoreService:
         return token
 
     def _load_movie_table(self, filename):
-        """load movie table"""
+        """update movie table from movieLen data"""
         f_info = open(filename)
         data = []
         movie = self.meta.tables[_MOVIE_INFO_TABLE]
@@ -167,6 +216,20 @@ class CoreService:
                          _THUMB_URL_KEY: 'oops.jpeg',
                          _DURATION_KEY: '0 min',
                          _PRESENT_TITLE_KEY: 'unknown'})
+        self.con.execute(movie.insert().values(data))
+        f_info.close()
+
+    def _load_rating_table(self, filename):
+        """load rating table"""
+        f_info = open(filename)
+        data = []
+        rating = self.meta.tables[_RATING_INFO_TABLE]
+        for line in f_info:
+            items = line.strip('\n').split('\t')
+            data.append({_USER_ID_KEY: items[0],
+                         _MOVIE_ID_KEY: items[1],
+                         _RATING_KEY: items[2],
+                         _TIMESTAMP_KEY: items[3]})
         self.con.execute(movie.insert().values(data))
         f_info.close()
 
@@ -184,6 +247,35 @@ def connect(user, password, db, host='localhost', port=5432):
     meta = orm.MetaData(bind=con, reflect=True)
 
     return con, meta
+
+def load_movieLen_info(filename):
+    f_info = open(filename)
+    for line in f_info:
+        info = line.strip('\n').split(" ")
+        if info[1] == "users":
+            num_users = int(info[0])
+        elif info[1] == "items":
+            num_movies = int(info[0])
+        elif info[1] == "ratings":
+            num_ratings = int(info[0])
+    f_info.close()
+    return num_movies, num_users
+
+def load_movieLen_data(filename, ratings, valid_ratings):
+    f_data = open(filename)
+    count = 0
+    print ratings.shape
+    for line in f_data:
+        items = line.strip('\n').split('\t')
+        user_id = int(items[0])
+        movie_id = int(items[1])
+        rate = int(items[2])
+        ratings[movie_id-1][user_id-1] = rate
+        valid_ratings[movie_id-1][user_id-1] = 1
+        count += 1
+    f_data.close()
+    return count
+
 
 if __name__ == "__main__":
     main()
