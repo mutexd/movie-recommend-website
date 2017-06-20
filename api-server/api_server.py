@@ -16,8 +16,11 @@ _EMAIL_KEY = "email_address"
 _PW_KEY = "password"
 _USER_ID_KEY = "user_id"
 _ERROR_KEY = "error"
+_STATUS__KEY = 'status'
 _TOKEN_KEY = "access_token"
 
+_MOVIE_ID_KEY = 'movie_id'
+_RATING_KEY = 'rating'
 ### APIs
 
 @app.route("/webmovie/api/v0.1/guest")
@@ -73,7 +76,16 @@ def rated(user_id):
 @app.route('/webmovie/api/v0.1/add_rating/<int:user_id>', methods=["POST"])
 @auth.login_required
 def add_rating(user_id):
-    return 'user %d\n' %user_id
+    if not request.json or (not _MOVIE_ID_KEY in request.json
+                            or not _RATING_KEY in request.json):
+        abort(400)
+    movie_id = request.json[_MOVIE_ID_KEY]
+    rating = request.json[_RATING_KEY]
+    print "got user:%d, rate:%d, on movie:%d" %(user_id, rating, movie_id)
+    if svc.add_rating(user_id, movie_id, rating) == True:
+        return make_response(jsonify({_STATUS__KEY: 'success'}), 200)
+    else:
+        return make_response(jsonify({_ERROR_KEY: 'fail'}), 401)
 
 ### Http error
 

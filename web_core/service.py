@@ -2,6 +2,7 @@ import sqlalchemy as orm
 import numpy as np
 from passlib.hash import sha256_crypt
 import random, string
+import time
 
 def main():
     """test"""
@@ -106,7 +107,7 @@ class CoreService:
         if _RATING_INFO_TABLE not in self.meta.tables:
             print "rating_info table created"
             rating_table = orm.Table(_RATING_INFO_TABLE, self.meta,
-                                     orm.Column(_USER_ID_KEY, orm.Integer, primary_key=True),
+                                     orm.Column(_USER_ID_KEY, orm.Integer),
                                      orm.Column(_MOVIE_ID_KEY, orm.Integer),
                                      orm.Column(_RATING_KEY, orm.Integer),
                                      orm.Column(_TIMESTAMP_KEY, orm.Integer))
@@ -129,9 +130,10 @@ class CoreService:
         result = self.con.execute(rating_tbl.select())
         print "max_id:", self.max_id
         for row in result:
-            print "user %d rate %d for movie_id(%d)" %(row.user_id, row.movie_id, row.rating)
-            self.ratings[row.movie_id][row.user_id+self.num_inactive_users-1] = row.rating
-            self.valid_ratings[row.movie_id][row.user_id+row.user_id+self.num_inactive_users-1] = 1
+            print "user %d rate %d for movie_id(%d)" %(row.user_id, row.rating, row.movie_id)
+            self.ratings[row.movie_id-1][row.user_id+self.num_inactive_users-1] = row.rating
+            self.valid_ratings[row.movie_id-1][(row.user_id
+                                               +self.num_inactive_users-1)] = 1
 
         return True
 
@@ -178,15 +180,42 @@ class CoreService:
         for i in range(m):
             idx, = self.valid_ratings[i].nonzero()
             ratings_mean[i] = np.mean(self.ratings[i][idx]) if len(idx) != 0 else 0
-        avg_idx = np.argsort(ratings_mean, axis=0)[::-1].flatten().tolist()
+        avg_idx = np.argsort(ratings_mean, axis=0)[::-1]
+        avg_idx = avg_idx + 1 # from index to movie_id
+        avg_idx = avg_idx.flatten().tolist()
         result = self.con.execute(movie.select().where(movie.c.movie_id.in_(avg_idx[begin:end])))
-        data = []
+        data = [None] * len(avg_idx[begin:end])
         for row in result:
-            data.append({_MOVIE_ID_KEY: row.movie_id,
-                         _TITLE_KEY: row.title,
-                         _THUMB_URL_KEY: row.thumb_url})
+            ## result from SQL is not sorted, sort it here
+            for idx in range(begin, end, 1):
+                if row.movie_id == avg_idx[idx]:
+                    data[idx-begin] = ({_MOVIE_ID_KEY: row.movie_id,
+                                        _TITLE_KEY: row.title,
+                                        _THUMB_URL_KEY: row.thumb_url})
+                    break
         return data
-    #def add_rating(user_id, movie_id, rating):
+
+    def add_rating(self, user_id, movie_id, rating):
+        """add rating into database and rating_matrix"""
+        ### need sanity checking here
+        if movie_id > self.num_movies or movie_id < 1 or rating > 5 or rating < 1:
+            print "invalid input"
+            return False
+        ### when to kick-off MFactor training?
+        rating_tbl = self.meta.tables[_RATING_INFO_TABLE]
+        self.con.execute(rating_tbl.insert().values(user_id=user_id,
+                                                movie_id=movie_id,
+                                                rating=rating,
+                                                timestamp=int(time.time())))
+        if user_id > self.num_users:
+            new_usr_rating = np.zero((self.num_movies, 1))
+            self.ratings = np.c_[self.ratings, new_usr_rating]
+            self.num_users += 1
+        self.ratings[movie_id-1][user_id+self.num_inactive_users-1] = rating
+        self.valid_ratings[movie_id-1][user_id+self.num_inactive_users-1] = 1
+        print "user:", user_id, "rate ",rating,"on movie_id=",movie_id
+        print self.ratings[movie_id-1][user_id+self.num_inactive_users-1]
+        return True
 
     #def get_prediction(user_id, r):
 
@@ -219,19 +248,6 @@ class CoreService:
         self.con.execute(movie.insert().values(data))
         f_info.close()
 
-    def _load_rating_table(self, filename):
-        """load rating table"""
-        f_info = open(filename)
-        data = []
-        rating = self.meta.tables[_RATING_INFO_TABLE]
-        for line in f_info:
-            items = line.strip('\n').split('\t')
-            data.append({_USER_ID_KEY: items[0],
-                         _MOVIE_ID_KEY: items[1],
-                         _RATING_KEY: items[2],
-                         _TIMESTAMP_KEY: items[3]})
-        self.con.execute(movie.insert().values(data))
-        f_info.close()
 
 def connect(user, password, db, host='localhost', port=5432):
     """Returns a connetion and meta-data object"""
