@@ -3,6 +3,7 @@ import numpy as np
 from passlib.hash import sha256_crypt
 import random, string
 import time
+import collaborative_filtering.collabor_filtering as cf
 
 def main():
     """test"""
@@ -122,10 +123,10 @@ class CoreService:
         self.num_users = (self.num_inactive_users + self.max_id) * 2
         self.ratings = np.zeros(shape=(self.num_movies, self.num_users))
         self.valid_ratings = np.zeros(shape=(self.num_movies, self.num_users))
-        ##load from movieLen data
+        ## load from movieLen data
         data_num = load_movieLen_data(movie_len_dir + "/u.data", self.ratings, self.valid_ratings)
         print "load ", data_num, "of rating data from movieLen"
-        ##load from database data
+        ## load from database data
         rating_tbl = self.meta.tables[_RATING_INFO_TABLE]
         result = self.con.execute(rating_tbl.select())
         print "max_id:", self.max_id
@@ -134,7 +135,9 @@ class CoreService:
             self.ratings[row.movie_id-1][row.user_id+self.num_inactive_users-1] = row.rating
             self.valid_ratings[row.movie_id-1][(row.user_id
                                                +self.num_inactive_users-1)] = 1
-
+        ### let's kick-off MFactor training here
+        #self.training()
+        #print "Initial training complete"
         return True
 
     def register(self, email, password):
@@ -173,7 +176,6 @@ class CoreService:
 
     def avg_ranking(self, begin, end):
         """return list of movie ranking from start to end"""
-        movie = self.meta.tables[_MOVIE_INFO_TABLE]
         ## calculate avg_ranking from ratings
         m, n = self.ratings.shape
         ratings_mean = np.zeros((m, 1))
@@ -183,12 +185,16 @@ class CoreService:
         avg_idx = np.argsort(ratings_mean, axis=0)[::-1]
         avg_idx = avg_idx + 1 # from index to movie_id
         avg_idx = avg_idx.flatten().tolist()
-        result = self.con.execute(movie.select().where(movie.c.movie_id.in_(avg_idx[begin:end])))
-        data = [None] * len(avg_idx[begin:end])
+        return self._get_movie_list(avg_idx, begin, end)
+
+    def _get_movie_list(self, id_list, begin, end):
+        movie = self.meta.tables[_MOVIE_INFO_TABLE]
+        result = self.con.execute(movie.select().where(movie.c.movie_id.in_(id_list[begin:end])))
+        data = [None] * len(id_list[begin:end])
         for row in result:
             ## result from SQL is not sorted, sort it here
             for idx in range(begin, end, 1):
-                if row.movie_id == avg_idx[idx]:
+                if row.movie_id == id_list[idx]:
                     data[idx-begin] = ({_MOVIE_ID_KEY: row.movie_id,
                                         _TITLE_KEY: row.title,
                                         _THUMB_URL_KEY: row.thumb_url})
@@ -217,7 +223,13 @@ class CoreService:
         print self.ratings[movie_id-1][user_id+self.num_inactive_users-1]
         return True
 
-    #def get_prediction(user_id, r):
+    def training(self):
+        self.mf = cf.MFactor(self.ratings, self.valid_ratings)
+        self.mf.training(10, 1)
+
+    def get_prediction(user_id, begin, end):
+        prediction = self.mf.predict(user_id + self.num_inactive_users - 1)
+        _get_movie_list(prediction, begin, end)
 
     def _generate_token(self, user_id):
         """generate token and save it to user_id:token list"""

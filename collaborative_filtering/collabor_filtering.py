@@ -10,10 +10,11 @@ class MFactor:
         self.ratings = ratings
         self.valid_ratings = valid_ratings
 
-    def training(self, num_features, lamda):
+    def training(self, num_features, lamda, norm=True):
         num_movies, num_users = self.ratings.shape
-        #labels_norm, self.labels_mean = _normalize_rating(self.ratings,
-        #                                                  self.valid_ratings)
+        if norm == True:
+            labels_norm, self.labels_mean = _normalize_rating(self.ratings,
+                                                              self.valid_ratings)
 
         # initialize parameters
         X = np.random.randn(num_movies, num_features)
@@ -23,9 +24,10 @@ class MFactor:
                                 (num_users*num_features))))
 
         # training our data
+        labels_dataset = labels_norm if norm == True else self.ratings
         xopt, fopt, _, _, _ = fmin_cg(
             _cost_function, params, fprime=_gradient_step,
-            args=(self.ratings, self.valid_ratings, num_users,
+            args=(labels_dataset, self.valid_ratings, num_users,
                   num_movies, num_features, lamda),
             maxiter=100, full_output=True)
 
@@ -101,6 +103,7 @@ def main():
 
     # output prediction
     idx = np.argsort(prediction)[::-1]
+    print idx[:10]
     for i in range(10):
         print "movie item: ", idx[i], " predict: ", prediction[idx[i]]
 
