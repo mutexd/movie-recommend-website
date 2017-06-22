@@ -11,6 +11,11 @@ auth = HTTPTokenAuth()
 
 svc = CoreService()
 
+if svc.start(sys.argv[1]) == False:
+    print "CoreService start fail"
+else:
+    print "Movie CoreService started."
+
 ### Constants
 _EMAIL_KEY = "email_address"
 _PW_KEY = "password"
@@ -28,7 +33,6 @@ def guest():
     """retrieve a list of avg-ranking movie list"""
     begin = request.args.get('begin')
     end = request.args.get('end')
-    ### need sanity check on arguments
     movie_list = svc.avg_ranking(int(begin), int(end))
     return make_response(jsonify({'movie_list': movie_list}), 200)
 
@@ -64,14 +68,16 @@ def signin():
 def recommend(user_id):
     begin = request.args.get('begin')
     end = request.args.get('end')
-    return "user %d\n" %user_id
+    movie_list = svc.get_prediction(user_id, int(begin), int(end))
+    return make_response(jsonify({'movie_list': movie_list}), 200)
 
 @app.route('/webmovie/api/v0.1/rated/<int:user_id>', methods=["GET"])
 @auth.login_required
 def rated(user_id):
     begin = request.args.get('begin')
     end = request.args.get('end')
-    return 'User %d\n' %user_id
+    movie_list = svc.get_rated(user_id, int(begin), int(end))
+    return make_response(jsonify({'movie_list': movie_list}), 200)
 
 @app.route('/webmovie/api/v0.1/add_rating/<int:user_id>', methods=["POST"])
 @auth.login_required
@@ -105,8 +111,4 @@ def unauthorized():
     return make_response(jsonify({_ERROR_KEY: 'Unauthorized access'}), 401)
 
 if __name__ == "__main__":
-    if svc.start(sys.argv[1]) == False:
-        print "CoreService start fail"
-    else:
-        print "Movie CoreService started."
-        app.run()
+    app.run(debug=True, use_reloader=True)

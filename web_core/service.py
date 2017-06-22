@@ -136,8 +136,8 @@ class CoreService:
             self.valid_ratings[row.movie_id-1][(row.user_id
                                                +self.num_inactive_users-1)] = 1
         ### let's kick-off MFactor training here
-        #self.training()
-        #print "Initial training complete"
+        self.training()
+        print "Initial training complete"
         return True
 
     def register(self, email, password):
@@ -187,19 +187,6 @@ class CoreService:
         avg_idx = avg_idx.flatten().tolist()
         return self._get_movie_list(avg_idx, begin, end)
 
-    def _get_movie_list(self, id_list, begin, end):
-        movie = self.meta.tables[_MOVIE_INFO_TABLE]
-        result = self.con.execute(movie.select().where(movie.c.movie_id.in_(id_list[begin:end])))
-        data = [None] * len(id_list[begin:end])
-        for row in result:
-            ## result from SQL is not sorted, sort it here
-            for idx in range(begin, end, 1):
-                if row.movie_id == id_list[idx]:
-                    data[idx-begin] = ({_MOVIE_ID_KEY: row.movie_id,
-                                        _TITLE_KEY: row.title,
-                                        _THUMB_URL_KEY: row.thumb_url})
-                    break
-        return data
 
     def add_rating(self, user_id, movie_id, rating):
         """add rating into database and rating_matrix"""
@@ -224,12 +211,41 @@ class CoreService:
         return True
 
     def training(self):
+        """load data into collaborative_filtering algorithm and kick-off training"""
         self.mf = cf.MFactor(self.ratings, self.valid_ratings)
-        self.mf.training(10, 1)
+        self.mf.training(10, 1) ## we better load feater_num:lambda from configuration file
 
-    def get_prediction(user_id, begin, end):
+    def get_prediction(self, user_id, begin, end):
+        """get rated movie list by user id in [begin:end],sorted by predicted rates"""
         prediction = self.mf.predict(user_id + self.num_inactive_users - 1)
-        _get_movie_list(prediction, begin, end)
+        predict_idx = np.argsort(prediction)[::-1]
+        print prediction[predict_idx[begin:end]]
+        return self._get_movie_list(predict_idx, begin, end)
+
+    def get_rated(self, user_id, begin, end):
+        """get rated movie list by user id in [begin:end],sorted by timestamp"""
+        rating_tbl = self.meta.tables[_RATING_INFO_TABLE]
+        result = self.con.execute(
+                    rating_tbl.select().where(rating_tbl.c.user_id==user_id).order_by(
+                    orm.sql.desc(rating_tbl.c.timestamp)))
+        idx_list = []
+        for row in result:
+            idx_list.append(row.movie_id)
+        return self._get_movie_list(idx_list, begin, end)
+
+    def _get_movie_list(self, id_list, begin, end):
+        movie = self.meta.tables[_MOVIE_INFO_TABLE]
+        result = self.con.execute(movie.select().where(movie.c.movie_id.in_(id_list[begin:end])))
+        data = [None] * len(id_list[begin:end])
+        for row in result:
+            ## result from SQL is not sorted, sort it here
+            for idx in range(begin, end, 1):
+                if row.movie_id == id_list[idx]:
+                    data[idx-begin] = ({_MOVIE_ID_KEY: row.movie_id,
+                                        _TITLE_KEY: row.title,
+                                        _THUMB_URL_KEY: row.thumb_url})
+                    break
+        return data
 
     def _generate_token(self, user_id):
         """generate token and save it to user_id:token list"""
