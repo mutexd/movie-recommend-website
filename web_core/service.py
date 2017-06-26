@@ -48,6 +48,7 @@ _MOVIE_ID_KEY = 'movie_id'
 _TITLE_KEY = 'title'
 _DATE_KEY = 'date'
 _IMDB_URL_KEY = 'imdb_url'
+_DURATION_KEY = 'duration'
 _THUMB_URL_KEY = 'thumb_url'
 _DURATION_KEY = 'duration'
 _PRESENT_TITLE_KEY = 'present_title'
@@ -243,7 +244,10 @@ class CoreService:
                 if row.movie_id == id_list[idx]:
                     data[idx-begin] = ({_MOVIE_ID_KEY: row.movie_id,
                                         _TITLE_KEY: row.title,
-                                        _THUMB_URL_KEY: row.thumb_url})
+                                        _THUMB_URL_KEY: row.thumb_url,
+                                        _DURATION_KEY: row.duration,
+                                        _IMDB_URL_KEY: row.imdb_url,
+                                        _DATE_KEY: row.date})
                     break
         return data
 

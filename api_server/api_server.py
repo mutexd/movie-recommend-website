@@ -1,5 +1,6 @@
 from flask import Flask, abort, jsonify, make_response, request
 from flask_httpauth import HTTPTokenAuth
+from flask_cors import CORS
 import sys
 
 sys.path.insert(0, "./../");
@@ -7,6 +8,7 @@ sys.path.insert(0, "./../");
 from web_core.service import CoreService
 
 app = Flask(__name__)
+CORS(app)
 auth = HTTPTokenAuth()
 
 svc = CoreService()
@@ -34,7 +36,7 @@ def guest():
     begin = request.args.get('begin')
     end = request.args.get('end')
     movie_list = svc.avg_ranking(int(begin), int(end))
-    return make_response(jsonify({'movie_list': movie_list}), 200)
+    return make_response(jsonify(movie_list), 200)
 
 @app.route('/webmovie/api/v0.1/signup', methods=["POST"])
 def registeration():

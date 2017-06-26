@@ -6,10 +6,10 @@
   <h1>Highest-rated movies</h1>
   <div class="movie-card" ng-repeat="card in mvList.movieList">
     {{card.title}}<br/>
-    <span style="font-size:8px">{{card.year}}, {{card.duration}}</span><br/>
+    <span style="font-size:8px">{{card.date}}, {{card.duration}}</span><br/>
     <div class="movie-thumb">
-      <a ng-href="{{card.imdbUrl}}">
-      <img ng-src="{{card.thumb}}" width=156 height=200>
+      <a ng-href="{{card.imdb_url}}">
+      <img ng-src="{{card.thumb_url}}" width=156 height=200>
     </div>
   </div>
 </div>
