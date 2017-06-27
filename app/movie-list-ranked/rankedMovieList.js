@@ -2,6 +2,7 @@
 
 angular.module('rankedMovieList', []);
 
+// service for getting average ranked movie list
 angular.
   module('rankedMovieList').
     factory('rankedListSvc', ['$resource', function($resource){

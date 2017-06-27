@@ -17,7 +17,7 @@ angular.
         })
         .when('/logon', {
           templateUrl: "user-signup/signUp.html",
-          controller: "movieController"
+          controller: "signUpController"
         })
         .when('/:userId', {
           templateUrl: "userMainPage.html",

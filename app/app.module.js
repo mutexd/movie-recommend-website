@@ -3,5 +3,6 @@
 angular.module('movieApp', [
 	'ngRoute',
 	'ngResource',
-	'rankedMovieList'
+	'rankedMovieList',
+	'userSignUp'
 ]);
