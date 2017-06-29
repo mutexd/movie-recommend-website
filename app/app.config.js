@@ -13,14 +13,14 @@ angular.
         })
         .when('/login', {
           templateUrl: "user-signin/signIn.html",
-          controller: "movieController"
+          controller: "signInController"
         })
         .when('/logon', {
           templateUrl: "user-signup/signUp.html",
           controller: "signUpController"
         })
         .when('/:userId', {
-          templateUrl: "userMainPage.html",
+          templateUrl: "user-page/recommend.html",
           controller: "userController"
         })
         .otherwise({ redirectTo: '/' });

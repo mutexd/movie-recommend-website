@@ -4,5 +4,7 @@ angular.module('movieApp', [
 	'ngRoute',
 	'ngResource',
 	'rankedMovieList',
-	'userSignUp'
+	'userSignUp',
+	'userSignIn',
+	'recommend'
 ]);
