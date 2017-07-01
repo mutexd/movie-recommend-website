@@ -1,17 +1,16 @@
 'use strict';
 
-angular.module('userSignUp', []);
-
 // service for sign up
 angular.
-  module('userSignUp').
+  module('movieApp').
     factory('signUpSvc', ['$resource', function($resource){
       return $resource('http://localhost:5000/webmovie/api/v0.1/signup', {});
     }]);
 
 angular.
-  module('userSignUp').
-    controller('signUpController', ['signUpSvc', '$location', function(signUpSvc, $location){
+  module('movieApp').
+    controller('signUpController', ['signUpSvc', 'userService', '$location',
+      function(signUpSvc, userService, $location){
       var self = this
       self.error_message = ""
       self.signUpRequest = function(fields) {
@@ -24,6 +23,8 @@ angular.
               self.error_message = data.error
             } else {
               self.auth = data
+              userService.setUID(data.user_id)
+              userService.setToken(data.access_token)
               // redirect to user page
               $location.url('/'+self.auth.user_id)
             }
