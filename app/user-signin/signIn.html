@@ -1,11 +1,15 @@
-<div style="width:auto;height:auto">
+<div ng-controller="signInController as ctrl" style="width:auto;height:auto">
   <div style="width:350px;height;600px;margin:100px auto;background-color:#ecf9f2">
     <h2 style="padding:10px 10px 5px 5px"> Sign In </h2>
     <hr/ style="margin:0px 5px 0px 5px">
+    <form name="sign_in_form" ng-submit="ctrl.signInRequest(fields)" id="form1">
     <input type="text" style="margin:20px 5px 5px 5px;font-size:14px;width:95%" 
-           ng-model="email" placeholder="enter email address"><br/>
+           ng-model="fields.email_address" ng-change="ctrl.onInput()" ng-model-options="{debounce:500}" placeholder="enter email address"><br/>
     <input type="password" style="margin:20px 5px 5px 5px;font-size:14px;width:95%"
-           ng-model="pw" placeholder="enter password"><br/>
-    <button class="button-signin" style="margin:20px 0px 0px 5px;font-size:16px">sign in</button>
+           ng-model="fields.password" ng-change="ctrl.onInput()" ng-model-options="{debounce:500}" placeholder="enter password"><br/>
+    </form>
+    <button class="button-signin" form="form1" style="margin:20px 0px 0px 5px;font-size:16px">sign in
+    </button>
+    <font style="margin:20px 0px 0px 5px;font-size:12px" color="#E00000">{{ctrl.error_message}}</font>
   </div>
 </div>

@@ -16,12 +16,20 @@ angular.
       self.error_message = ""
       self.signUpRequest = function(fields) {
         if (fields.password != fields.confirm_pw) {
-          self.error_message = "Password is not matched!"
+          self.error_message = "Entered passwords are not matched!"
         } else {
           // retrieve user_id, access_token,
-          self.auth = signUpSvc.save(fields);
-          // redirect to user page
-          $location.url('/:self.auth.user_id')
+          signUpSvc.save(fields, function(data){
+            if (data.status == "fail") {
+              self.error_message = data.error
+            } else {
+              self.auth = data
+              // redirect to user page
+              $location.url('/'+self.auth.user_id)
+            }
+          }, function(error){
+            console.error(error)
+          });
         }
       }
       self.onInput = function() {

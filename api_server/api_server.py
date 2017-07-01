@@ -23,11 +23,14 @@ _EMAIL_KEY = "email_address"
 _PW_KEY = "password"
 _USER_ID_KEY = "user_id"
 _ERROR_KEY = "error"
-_STATUS__KEY = 'status'
+_STATUS_KEY = 'status'
 _TOKEN_KEY = "access_token"
 
 _MOVIE_ID_KEY = 'movie_id'
 _RATING_KEY = 'rating'
+_OK_VAL = 'success'
+_FAIL_VAL = 'fail'
+
 ### APIs
 
 @app.route("/webmovie/api/v0.1/guest")
@@ -45,12 +48,13 @@ def registeration():
         abort(400)
     elif not _PW_KEY in request.json:
         abort(400)
-
     user_id, access_token = svc.register(request.json[_EMAIL_KEY], request.json[_PW_KEY])
     if user_id >= 0:
-        return make_response(jsonify({_USER_ID_KEY: user_id, _TOKEN_KEY: access_token}), 200)
+        return make_response(jsonify({_STATUS_KEY: _OK_VAL, _USER_ID_KEY: user_id,
+                                      _TOKEN_KEY: access_token}), 200)
     else:
-        return make_response(jsonify({_ERROR_KEY: 'Existing email address'}), 401)
+        return make_response(jsonify({_STATUS_KEY: _FAIL_VAL,
+                                      _ERROR_KEY: 'Existing email address'}), 200)
    
 @app.route('/webmovie/api/v0.1/signin', methods=["POST"])
 def signin():
@@ -61,9 +65,11 @@ def signin():
         abort(400)
     user_id, access_token = svc.auth(request.json[_EMAIL_KEY], request.json[_PW_KEY])
     if user_id >= 0:
-        return make_response(jsonify({_USER_ID_KEY: user_id, _TOKEN_KEY: access_token}), 200)
+        return make_response(jsonify({_STATUS_KEY: _OK_VAL, _USER_ID_KEY: user_id,
+                                      _TOKEN_KEY: access_token}), 200)
     else:
-        return make_response(jsonify({_ERROR_KEY: 'Authentication fail'}), 401)
+        return make_response(jsonify({_STATUS_KEY: _FAIL_VAL,
+                                      _ERROR_KEY: 'Authentication fail'}), 200)
 
 @app.route("/webmovie/api/v0.1/recommend/<int:user_id>", methods=["GET"])
 @auth.login_required
