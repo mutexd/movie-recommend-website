@@ -27,6 +27,7 @@ _STATUS_KEY = 'status'
 _TOKEN_KEY = "access_token"
 
 _MOVIE_ID_KEY = 'movie_id'
+_MOVIE_LIST_KEY = 'movie_list'
 _RATING_KEY = 'rating'
 _OK_VAL = 'success'
 _FAIL_VAL = 'fail'
@@ -38,8 +39,11 @@ def guest():
     """retrieve a list of avg-ranking movie list"""
     begin = request.args.get('begin')
     end = request.args.get('end')
-    movie_list = svc.avg_ranking(int(begin), int(end))
-    return make_response(jsonify(movie_list), 200)
+    if begin is None or end is None:
+        return make_response(jsonify({_STATUS_KEY: _FAIL_VAL}), 200)
+    else:
+        movie_list = svc.avg_ranking(int(begin), int(end))
+        return make_response(jsonify({_STATUS_KEY: _OK_VAL, _MOVIE_LIST_KEY: movie_list}), 200)
 
 @app.route('/webmovie/api/v0.1/signup', methods=["POST"])
 def registeration():
@@ -76,16 +80,22 @@ def signin():
 def recommend(user_id):
     begin = request.args.get('begin')
     end = request.args.get('end')
-    movie_list = svc.get_prediction(user_id, int(begin), int(end))
-    return make_response(jsonify({'movie_list': movie_list}), 200)
+    if begin is None or end is None:
+        return make_response(jsonify({_STATUS_KEY: _FAIL_VAL}), 200)
+    else:
+        movie_list = svc.get_prediction(user_id, int(begin), int(end))
+        return make_response(jsonify({_STATUS_KEY: _OK_VAL, _MOVIE_LIST_KEY: movie_list}), 200)
 
 @app.route('/webmovie/api/v0.1/rated/<int:user_id>', methods=["GET"])
 @auth.login_required
 def rated(user_id):
     begin = request.args.get('begin')
     end = request.args.get('end')
-    movie_list = svc.get_rated(user_id, int(begin), int(end))
-    return make_response(jsonify({'movie_list': movie_list}), 200)
+    if begin is None or end is None:
+        return make_response(jsonify({_STATUS_KEY: _FAIL_VAL}), 200)
+    else:
+        movie_list = svc.get_rated(user_id, int(begin), int(end))
+        return make_response(jsonify({_STATUS_KEY: _OK_VAL, _MOVIE_LIST_KEY: movie_list}), 200)
 
 @app.route('/webmovie/api/v0.1/add_rating/<int:user_id>', methods=["POST"])
 @auth.login_required

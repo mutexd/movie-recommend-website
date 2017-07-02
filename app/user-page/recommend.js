@@ -50,7 +50,8 @@ angular.
 		  if(data.status == "fail"){
 			console.error(data);
 		  } else {
-			self.movieList = data;
+			self.movieList = data.movie_list;
+			console.log(data)
 		  }
 		}, function(error){
 		  console.error(error);
@@ -61,7 +62,8 @@ angular.
 		  if(data.status == "fail"){
 			console.error(data);
 		  } else {
-			console.error(data);
+			self.ratedList = data.movie_list;
+			console.log(data);
 		  }
 		}, function(error){
 		  console.error(error);
