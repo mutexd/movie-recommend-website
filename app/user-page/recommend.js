@@ -69,5 +69,9 @@ angular.
 		  console.error(error);
 		}
 	  );
+	  self.logout = function(){
+		userService.setToken("");
+		userService.setUID(0);
+	  }
 	}]);
 

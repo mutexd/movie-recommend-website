@@ -1,9 +1,18 @@
 <div ng-controller="userController as usrCtrl">
     <div class="log-link">
-        <a ng-href="#!/logon"><button class="button-signup">Log out</button></a>
+        <a ng-href="#!/"><button ng-click=usrCtrl.logout() class="button-signup">Log out</button></a>
     </div>
-  <h1>Highest-rated movies</h1>
+  <h1>We recommend these movies to you</h1>
   <div class="movie-card" ng-repeat="card in usrCtrl.movieList">
+    {{card.title}}<br/>
+    <span style="font-size:8px">{{card.date}}, {{card.duration}}</span><br/>
+    <div class="movie-thumb">
+      <a ng-href="{{card.imdb_url}}">
+      <img ng-src="{{card.thumb_url}}" width=156 height=200>
+    </div>
+  </div>
+  <h1>Movies you've rated</h1>
+  <div class="movie-card" ng-repeat="card in usrCtrl.ratedList">
     {{card.title}}<br/>
     <span style="font-size:8px">{{card.date}}, {{card.duration}}</span><br/>
     <div class="movie-thumb">
