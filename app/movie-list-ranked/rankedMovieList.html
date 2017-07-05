@@ -9,7 +9,13 @@
     <span style="font-size:8px">{{card.date}}, {{card.duration}}</span><br/>
     <div class="movie-thumb">
       <a ng-href="{{card.imdb_url}}">
-      <img ng-src="{{card.thumb_url}}" width=156 height=200>
+      <img ng-src="{{card.thumb_url}}" width=156 height=180>
+    </div>
+    <div>
+      <canvas ng-controller='starController' id="star" height="30" width="130">
+        Your browser does not support this.
+      </canvas>
     </div>
   </div>
+
 </div>
