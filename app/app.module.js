@@ -26,56 +26,64 @@ angular.
 	  }
 	});
 
-//drawing star
 angular.
   module('movieApp').
-  controller('starController', [function() {
-	var self = this;
-	var canvas = document.getElementById("star");
-	self.loadStar = function(color, num){
-		var cxt=canvas.getContext("2d");
-		cxt.save();
-		for(var j=0;j<5;j++){
-			if(j==0){
-				cxt.translate(13,15);
-			} else {
-				cxt.translate(25,0);
-			}
-			cxt.beginPath();
-			cxt.strokeStyle="orange";
-			cxt.lineWidth="1";
-			cxt.closePath();
-			cxt.beginPath();
-			for(var i=0;i<5;i++){
-				cxt.lineTo(12*Math.cos((18+i*72)*Math.PI/180),-12*Math.sin((18+i*72)*Math.PI/180));
-				cxt.lineTo(6*Math.cos((54+i*72)*Math.PI/180),-6*Math.sin((54+i*72)*Math.PI/180));
-			}
-			if (j<num) {
-				cxt.fillStyle=color;
-			} else {
-				cxt.fillStyle="white";
-			}
-			cxt.fill();
-			cxt.closePath();
-			cxt.stroke();
+    directive('starCanvas', function(){
+      function link(scope, element, attrs) {
+		  var canvas = element[0];
+		  loadStar(canvas, 'white', 5);
+		  canvas.addEventListener('mousemove', function(evt) {
+			var mousePos = getMousePos(canvas, evt);
+			var numStar = Math.floor(mousePos.x/26) + 1;
+			loadStar(canvas, "yellow", numStar);
+			//console.log('Mouse position: ' + mousePos.x + ',' + mousePos.y + '--'+numStar);
+		  }, false);
+		  canvas.addEventListener('mouseout', function(evt) {
+			loadStar(canvas, "white", 5);
+		  }, false);
+		  canvas.addEventListener('click', function(evt){
+			var mousePos = getMousePos(canvas, evt);
+			console.log('Click position: ' + mousePos.x + ',' + mousePos.y);
+		  }, false);
+	  }
+      return {
+		restrict: 'E',
+		replace: true,
+		scope: true,
+		link: link,
+		template: '<canvas id="myCanvas" width="130" height="30"></canvas>'
+      };
+    });
+
+function loadStar(canvas, color, num) {
+    var ctx = canvas.getContext('2d');
+	ctx.save();
+	for(var j=0;j<5;j++){
+		if(j==0){
+			ctx.translate(13,15);
+		} else {
+			ctx.translate(25,0);
 		}
-		cxt.restore();
-	};
-	canvas.addEventListener('mousemove', function(evt) {
-		var mousePos = getMousePos(canvas, evt);
-		var numStar = Math.floor(mousePos.x/26) + 1;
-		self.loadStar("yellow", numStar);
-		console.log('Mouse position: ' + mousePos.x + ',' + mousePos.y + '--'+numStar);
-	}, false);
-	canvas.addEventListener('mouseout', function(evt) {
-		self.loadStar("white", 5);
-	}, false);
-	canvas.addEventListener('click', function(evt){
-		var mousePos = getMousePos(canvas, evt);
-		console.log('Click position: ' + mousePos.x + ',' + mousePos.y);
-	}, false);
-	self.loadStar('white');
-}]);
+		ctx.beginPath();
+		ctx.strokeStyle="orange";
+		ctx.lineWidth="1";
+		ctx.closePath();
+		ctx.beginPath();
+		for(var i=0;i<5;i++){
+			ctx.lineTo(12*Math.cos((18+i*72)*Math.PI/180),-12*Math.sin((18+i*72)*Math.PI/180));
+			ctx.lineTo(6*Math.cos((54+i*72)*Math.PI/180),-6*Math.sin((54+i*72)*Math.PI/180));
+		}
+		if (j<num) {
+			ctx.fillStyle=color;
+		} else {
+			ctx.fillStyle="white";
+		}
+		ctx.fill();
+		ctx.closePath();
+		ctx.stroke();
+	}
+	ctx.restore();
+};
 
 function getMousePos(canvas, evt) {
 	var rect = canvas.getBoundingClientRect();

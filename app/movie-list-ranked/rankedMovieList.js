@@ -15,7 +15,7 @@ angular.
 angular.
   module('movieApp').
     controller('movieController', ['rankedListSvc', function(rankedListSvc){
-	  var self = this
+	  var self = this;
 	  var fields = {begin:0, end:20};
 	  rankedListSvc.query(fields, function(data){
 		if (data.status == "fail"){
@@ -25,6 +25,5 @@ angular.
 		}
 	  }, function(error){
 		console.error(error)
-	  })
+	  });
     }]);
-
