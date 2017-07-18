@@ -43,15 +43,18 @@ angular.
 		  }, false);
 		  canvas.addEventListener('click', function(evt){
 			var mousePos = getMousePos(canvas, evt);
-			console.log('Click position: ' + mousePos.x + ',' + mousePos.y);
+			var numStar = Math.floor(mousePos.x/26) + 1;
+			console.log(attrs.title + '- Click star: ' + numStar);
 		  }, false);
 	  }
       return {
 		restrict: 'E',
 		replace: true,
-		scope: true,
+		scope: {
+			title: '@'
+		},
 		link: link,
-		template: '<canvas id="myCanvas" width="130" height="30"></canvas>'
+		template: '<canvas id="canvas{{title}}" width="130" height="30"></canvas>'
       };
     });
 

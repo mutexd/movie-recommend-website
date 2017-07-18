@@ -10,7 +10,8 @@
     <div class="movie-thumb">
       <a ng-href="{{card.imdb_url}}">
       <img ng-src="{{card.thumb_url}}" width=156 height=180>
+      </a>
     </div>
-    <star-canvas></star-canvas>
+    <star-canvas title="{{card.movie_id}}"></star-canvas>
   </div>
 </div>
