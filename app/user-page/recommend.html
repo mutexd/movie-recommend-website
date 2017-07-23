@@ -3,13 +3,15 @@
         <a ng-href="#!/"><button ng-click=usrCtrl.logout() class="button-signup">Log out</button></a>
     </div>
   <h1>We recommend these movies to you</h1>
-  <div class="movie-card" ng-repeat="card in usrCtrl.movieList">
+  <div class="movie-card" ng-repeat="card in usrCtrl.movieList"  ng-value="{{$index}}">
     {{card.title}}<br/>
     <span style="font-size:8px">{{card.date}}, {{card.duration}}</span><br/>
     <div class="movie-thumb">
       <a ng-href="{{card.imdb_url}}">
-      <img ng-src="{{card.thumb_url}}" width=156 height=200>
+      <img ng-src="{{card.thumb_url}}" width=156 height=180>
+      </a>
     </div>
+    <star-canvas title="{{card.movie_id}}" index="{{$index}}"></star-canvas>
   </div>
   <h1>Movies you've rated</h1>
   <div class="movie-card" ng-repeat="card in usrCtrl.ratedList">
@@ -17,7 +19,9 @@
     <span style="font-size:8px">{{card.date}}, {{card.duration}}</span><br/>
     <div class="movie-thumb">
       <a ng-href="{{card.imdb_url}}">
-      <img ng-src="{{card.thumb_url}}" width=156 height=200>
+      <img ng-src="{{card.thumb_url}}" width=156 height=180>
+      </a>
     </div>
+    <fixed-star rating=5></fixed-star>
   </div>
 </div>

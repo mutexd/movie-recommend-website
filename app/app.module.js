@@ -28,33 +28,20 @@ angular.
 
 angular.
   module('movieApp').
-    directive('starCanvas', function(){
+    directive('fixedStar', function(){
       function link(scope, element, attrs) {
 		  var canvas = element[0];
-		  loadStar(canvas, 'white', 5);
-		  canvas.addEventListener('mousemove', function(evt) {
-			var mousePos = getMousePos(canvas, evt);
-			var numStar = Math.floor(mousePos.x/26) + 1;
-			loadStar(canvas, "yellow", numStar);
-			//console.log('Mouse position: ' + mousePos.x + ',' + mousePos.y + '--'+numStar);
-		  }, false);
-		  canvas.addEventListener('mouseout', function(evt) {
-			loadStar(canvas, "white", 5);
-		  }, false);
-		  canvas.addEventListener('click', function(evt){
-			var mousePos = getMousePos(canvas, evt);
-			var numStar = Math.floor(mousePos.x/26) + 1;
-			console.log(attrs.title + '- Click star: ' + numStar);
-		  }, false);
+		  var numStar = attrs.rating;
+		  loadStar(canvas, "yellow", numStar);
 	  }
       return {
 		restrict: 'E',
 		replace: true,
 		scope: {
-			title: '@'
+			rating: '@'
 		},
 		link: link,
-		template: '<canvas id="canvas{{title}}" width="130" height="30"></canvas>'
+		template: '<canvas id="guestStar" width="130" height="30"></canvas>'
       };
     });
 

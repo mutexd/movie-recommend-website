@@ -106,7 +106,7 @@ def add_rating(user_id):
     movie_id = request.json[_MOVIE_ID_KEY]
     rating = request.json[_RATING_KEY]
     if svc.add_rating(user_id, movie_id, rating) == True:
-        return make_response(jsonify({_STATUS__KEY: 'success'}), 200)
+        return make_response(jsonify({_STATUS_KEY: 'success'}), 200)
     else:
         return make_response(jsonify({_ERROR_KEY: 'fail'}), 401)
 
